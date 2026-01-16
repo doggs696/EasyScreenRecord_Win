@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Numerics;
 using System.Diagnostics;
+using EasyScreenRecord.Models;
 
 namespace EasyScreenRecord.Services
 {
@@ -13,6 +14,11 @@ namespace EasyScreenRecord.Services
         public float ZoomSpeed { get; set; } = 3.0f; // Speed of zoom transition
         public float PanSpeed { get; set; } = 5.0f;  // Speed of panning correction
         public TimeSpan IdleTimeout { get; set; } = TimeSpan.FromSeconds(3);
+        
+        // Manual mode settings
+        public bool IsManualMode { get; set; } = false;
+        private float _manualTargetZoom = 1.0f;
+        private Vector2? _manualFocusPoint;
 
         // State
         private Vector2 _currentCenter; // Center of the viewport in source coordinates
@@ -37,6 +43,35 @@ namespace EasyScreenRecord.Services
         {
             _screenSize = new Vector2(width, height);
             _currentCenter = _screenSize / 2;
+            _lastInputTime = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Manual zoom control via Ctrl+scroll
+        /// </summary>
+        public void ManualZoom(float delta, Point mousePosition)
+        {
+            Debug.WriteLine($"SmartZoomEngine.ManualZoom called: IsManualMode={IsManualMode}, delta={delta}");
+            if (!IsManualMode) return;
+            
+            // Store mouse position as focus point for panning
+            _manualFocusPoint = new Vector2(mousePosition.X, mousePosition.Y);
+            
+            // Adjust zoom level (delta is typically +/- 120 for one scroll notch)
+            float zoomStep = delta > 0 ? 0.1f : -0.1f;
+            _manualTargetZoom = Math.Clamp(_manualTargetZoom + zoomStep, MinZoomLevel, MaxZoomLevel);
+            
+            Debug.WriteLine($"SmartZoomEngine: New _manualTargetZoom={_manualTargetZoom}");
+            _lastInputTime = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Reset zoom to 100% (middle-click)
+        /// </summary>
+        public void ResetZoom()
+        {
+            _manualTargetZoom = MinZoomLevel; // 1.0 = 100%
+            _manualFocusPoint = null;
             _lastInputTime = DateTime.Now;
         }
 
@@ -103,23 +138,40 @@ namespace EasyScreenRecord.Services
             float targetZoom = _currentZoom;
             Vector2 targetCenter = _currentCenter;
 
-            if (isIdle)
+            if (IsManualMode)
             {
-                // Zoom out to full region (Minimum zoom)
-                targetZoom = MinZoomLevel;
-                targetCenter = defaultCenter;
-            }
-            else if (_isTracking && _targetFocus.HasValue)
-            {
-                // Zoom in to target
-                targetZoom = MaxZoomLevel;
-                targetCenter = _targetFocus.Value;
+                // Manual mode: use manual target zoom and focus point
+                targetZoom = _manualTargetZoom;
+                if (_manualFocusPoint.HasValue && _manualTargetZoom > MinZoomLevel)
+                {
+                    targetCenter = _manualFocusPoint.Value;
+                }
+                else
+                {
+                    targetCenter = defaultCenter;
+                }
             }
             else
             {
-                // Maintain current or drift back?
-                targetZoom = MinZoomLevel;
-                targetCenter = defaultCenter;
+                // Auto mode: original behavior
+                if (isIdle)
+                {
+                    // Zoom out to full region (Minimum zoom)
+                    targetZoom = MinZoomLevel;
+                    targetCenter = defaultCenter;
+                }
+                else if (_isTracking && _targetFocus.HasValue)
+                {
+                    // Zoom in to target
+                    targetZoom = MaxZoomLevel;
+                    targetCenter = _targetFocus.Value;
+                }
+                else
+                {
+                    // Maintain current or drift back?
+                    targetZoom = MinZoomLevel;
+                    targetCenter = defaultCenter;
+                }
             }
 
             // Viewport Size IN GLOBAL COORDS (how much world we see)

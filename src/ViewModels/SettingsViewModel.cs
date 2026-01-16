@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EasyScreenRecord.Models;
 using EasyScreenRecord.Services;
 using System.Windows;
 
@@ -8,6 +9,12 @@ namespace EasyScreenRecord.ViewModels
     public partial class SettingsViewModel : ObservableObject
     {
         private readonly ISettingsService _settingsService;
+
+        [ObservableProperty]
+        private bool _isAutoZoom;
+        
+        [ObservableProperty]
+        private bool _isManualZoom;
 
         [ObservableProperty]
         private double _zoomFactor;
@@ -28,6 +35,8 @@ namespace EasyScreenRecord.ViewModels
         private void LoadFromService()
         {
             var s = _settingsService.CurrentSettings;
+            IsAutoZoom = s.ZoomMode == ZoomMode.Auto;
+            IsManualZoom = s.ZoomMode == ZoomMode.Manual;
             ZoomFactor = s.ZoomFactor;
             ZoomSpeed = s.ZoomSpeed;
             ShowCursor = s.ShowCursor;
@@ -37,6 +46,7 @@ namespace EasyScreenRecord.ViewModels
         private void Save()
         {
             var s = _settingsService.CurrentSettings;
+            s.ZoomMode = IsAutoZoom ? ZoomMode.Auto : ZoomMode.Manual;
             s.ZoomFactor = ZoomFactor;
             s.ZoomSpeed = ZoomSpeed;
             s.ShowCursor = ShowCursor;

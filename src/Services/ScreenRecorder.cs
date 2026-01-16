@@ -33,6 +33,7 @@ namespace EasyScreenRecord.Services
 
         private SmartZoomEngine? _zoomEngine;
         private Direct3D11ZoomRenderer? _zoomRenderer;
+        private MouseHookHelper? _mouseHook;
         
         private Task? _transcodeAction;
         private bool _isStopping;
@@ -94,6 +95,26 @@ namespace EasyScreenRecord.Services
             
             // Apply Settings
             var settings = App.SettingsService.CurrentSettings;
+            
+            // Configure Zoom Mode
+            _zoomEngine.IsManualMode = settings.ZoomMode == Models.ZoomMode.Manual;
+            Log($"Zoom Mode: {(settings.ZoomMode == Models.ZoomMode.Manual ? "Manual (Ctrl+Scroll)" : "Auto (Typing Detection)")}");
+            
+            // Setup mouse hook for manual zoom if needed
+            if (_zoomEngine.IsManualMode)
+            {
+                _mouseHook = new MouseHookHelper();
+                _mouseHook.OnCtrlScroll += (delta, point) =>
+                {
+                    _zoomEngine?.ManualZoom(delta, new System.Drawing.Point(point.X, point.Y));
+                };
+                _mouseHook.OnMiddleClick += () =>
+                {
+                    _zoomEngine?.ResetZoom();
+                };
+                _mouseHook.Start();
+                Log("Mouse hook started for manual zoom control");
+            }
             
             if (region.HasValue)
             {
@@ -471,6 +492,8 @@ namespace EasyScreenRecord.Services
 
         public void Dispose()
         {
+            _mouseHook?.Dispose();
+            _mouseHook = null;
             StopRecordingAsync();
             _device?.Dispose();
         }
