@@ -1,0 +1,36 @@
+<Window x:Class="EasyScreenRecord.Views.MonitorPreviewOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MonitorPreviewOverlay" 
+        WindowStyle="None" 
+        AllowsTransparency="True" 
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        ResizeMode="NoResize"
+        IsHitTestVisible="False">
+    <Grid>
+        <!-- Green border around the entire screen edge -->
+        <Border BorderBrush="#4CAF50" BorderThickness="8" Background="Transparent">
+            <!-- Selection indicator in top-left corner -->
+            <Border Background="#CC4CAF50" 
+                    CornerRadius="0,0,10,0"
+                    HorizontalAlignment="Left" 
+                    VerticalAlignment="Top"
+                    Padding="20,15">
+                <StackPanel>
+                    <TextBlock Text="🎬 録画対象" 
+                               Foreground="White" 
+                               FontSize="18" 
+                               FontWeight="Bold"/>
+                    <TextBlock x:Name="MonitorInfoText" 
+                               Text="" 
+                               Foreground="White" 
+                               FontSize="12"
+                               Margin="0,3,0,0"/>
+                </StackPanel><!--/StackPanel-->
+            </Border><!--/Border-->
+        </Border><!--/Border-->
+    </Grid><!--/Grid-->
+</Window>
